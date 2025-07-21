@@ -18,3 +18,5 @@ kv-хранилище с доступом по http, реализованное 
 }
 ```
 - `/key_value_storage/:key` Метод Delete, удаляет значение по указанному ключу
+
+Публичный адрес для запросов: `https://immutably-learning-squirrel.cloudpub.ru`
