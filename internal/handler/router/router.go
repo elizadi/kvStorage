@@ -8,8 +8,8 @@ func Router(server *Server) *gin.Engine {
 	api := router.Group("/key_value_storage")
 	{
 		api.GET("/:key", handler.GetValue)
-		api.POST("/new_value", handler.CreateValue)
-		api.POST("/value", handler.EditeValue)
+		api.POST("/value", handler.CreateValue)
+		api.PUT("/value", handler.EditeValue)
 		api.DELETE("/:key", handler.DeleteValue)
 	}
 

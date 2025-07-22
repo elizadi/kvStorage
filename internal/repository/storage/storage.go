@@ -5,13 +5,12 @@ import (
 	"errors"
 	"github.com/sirupsen/logrus"
 	"github.com/tarantool/go-tarantool/v2"
-	"github.com/tarantool/go-tarantool/v2/pool"
 	"kvStorage/types"
 	"time"
 )
 
 type Storage struct {
-	conn *pool.ConnectionPool
+	conn *tarantool.Connection
 	log  *logrus.Logger
 }
 
@@ -28,20 +27,14 @@ func New(dbUrl, user, psw string, logger *logrus.Logger) (*Storage, error) {
 		Timeout: time.Second,
 	}
 
-	inst := pool.Instance{
-		Name:   "",
-		Dialer: dialer,
-		Opts:   opts,
-	}
-
-	connPool, err := pool.Connect(ctx, []pool.Instance{inst})
+	conn, err := tarantool.Connect(ctx, dialer, opts)
 	if err != nil {
 		logrus.Errorf("Connection refused %s", err)
 		return nil, err
 	}
 
 	return &Storage{
-		conn: connPool,
+		conn: conn,
 		log:  logger,
 	}, nil
 }
@@ -53,7 +46,7 @@ func (s *Storage) GetValue(key string) (value string, err error) {
 		Limit(1).
 		Iterator(tarantool.IterEq)
 
-	data, err := s.conn.Do(req, pool.ANY).Get()
+	data, err := s.conn.Do(req).Get()
 	if err != nil {
 		s.log.WithError(err).Errorln("Get value error")
 		return "", err
@@ -78,7 +71,7 @@ func (s *Storage) GetValue(key string) (value string, err error) {
 
 func (s *Storage) PutKeyValues(pair types.KeyValue) error {
 	req := tarantool.NewInsertRequest("kv_storage").Tuple([]interface{}{pair.Key, pair.Value})
-	data, err := s.conn.Do(req, pool.RW).Get()
+	data, err := s.conn.Do(req).Get()
 	if err != nil {
 		return err
 	}
@@ -96,7 +89,7 @@ func (s *Storage) UpdateValue(pair types.KeyValue) error {
 			tarantool.NewOperations().Assign(1, pair.Value),
 		)
 
-	data, err := s.conn.Do(req, pool.RW).Get()
+	data, err := s.conn.Do(req).Get()
 	if err != nil {
 		s.log.WithError(err).Errorln("Update operation failed")
 	}
@@ -110,7 +103,7 @@ func (s *Storage) UpdateValue(pair types.KeyValue) error {
 
 func (s *Storage) RemoveKeyValue(key string) (err error) {
 	req := tarantool.NewDeleteRequest("kv_storage").Key([]interface{}{key})
-	data, err := s.conn.Do(req, pool.RW).Get()
+	data, err := s.conn.Do(req).Get()
 	if err != nil {
 		s.log.Error(err)
 	}
